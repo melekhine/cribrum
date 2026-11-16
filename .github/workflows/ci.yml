@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Run unit tests
+        run: go test -v -race ./...
+
+      - name: Verify Linux builds
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build ./cmd/cribrum
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build ./cmd/cribrum
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ./cmd/cribrum

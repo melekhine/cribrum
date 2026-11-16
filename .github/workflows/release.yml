@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.1.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Create and push Git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@://github.com"
+          git tag -a "${{ inputs.tag }}" -m "Release ${{ inputs.tag }}"
+          git push origin "${{ inputs.tag }}"
+
+      - name: Build Linux binaries
+        run: |
+          mkdir -p dist
+          GIT_HASH=$(git rev-parse --short HEAD)
+          GIT_TIME=$(date -u "+%FT%TZ")
+          GIT_TAG="${{ inputs.tag }}"
+          LDFLAGS="-s -w -X cribrum.GitHash=${GIT_HASH} -X cribrum.BuildTime=${GIT_TIME} -X cribrum.Version=${GIT_TAG}"
+
+          platforms=(
+            "arm/7/cribrum-linux-armv7"
+            "arm64//cribrum-linux-arm64"
+            "amd64//cribrum-linux-amd64"
+          )
+
+          for p in "${platforms[@]}"; do
+            IFS="/" read -r goarch goarm outname <<< "$p"
+            echo "Building $outname..."
+            CGO_ENABLED=0 GOOS=linux GOARCH=$goarch GOARM=$goarm \
+              go build -ldflags="$LDFLAGS" -o "dist/cribrum" ./cmd/cribrum
+            tar -czf "dist/${outname}-${GIT_TAG}.tar.gz" -C dist cribrum -C .. README.txt LICENSE
+            rm -f dist/cribrum
+          done
+
+          cd dist && sha256sum *.tar.gz > SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: "Cribrum ${{ inputs.tag }}"
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          files: |
+            dist/*.tar.gz
+            dist/SHA256SUMS.txt
