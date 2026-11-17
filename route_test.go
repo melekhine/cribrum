@@ -42,17 +42,23 @@ func TestHostMask(t *testing.T) {
 }
 
 func TestNewValidation(t *testing.T) {
-	_, err := New(Config{OutIface: "dummy0"})
-	if err == nil {
-		t.Fatal("expected error when OutIface is empty, got nil")
-	}
-
-	s, err := New(Config{OutIface: "dummy0"})
+	s, err := New(Config{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if s.cfg.RouteTable != 100 {
 		t.Errorf("default RouteTable = %d, want 100", s.cfg.RouteTable)
+	}
+	if s.cfg.OutIface != "" {
+		t.Errorf("default OutIface = %q, want empty (blackhole)", s.cfg.OutIface)
+	}
+
+	sCustom, err := New(Config{OutIface: "dummy0"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sCustom.cfg.OutIface != "dummy0" {
+		t.Errorf("OutIface = %q, want %q", sCustom.cfg.OutIface, "dummy0")
 	}
 }
 
