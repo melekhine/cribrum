@@ -48,7 +48,7 @@ SOZVEZDIE SSK OOO                                      Igor A. Melekhine
      -listen      Local UDP bind address (default "127.0.0.1:5354")
      -upstream    Upstream local DNS resolver (e.g. stubby/unbound) (default "127.0.0.53:53")
      -table       Kernel routing table ID (default 100)
-     -iface       Egress tunnel interface (default "dummy0")
+     -iface       Egress tunnel interface (e.g. "dummy0", default is none for blackhole)
      -ttl         Minimum route lifetime in seconds (default 300)
      -completion  Generate shell completion script (bash|zsh)
      -version     Print version information
@@ -57,8 +57,8 @@ SOZVEZDIE SSK OOO                                      Igor A. Melekhine
 4. Integration
 
    Add target domains to dnsmasq.conf:
-      server=example.com
-      server=*.example.net
+      server=/example.com/127.0.0.1#5354 # will cover domain and all its subdomains
+      server=/local.example.net/127.0.0.1#5354
 
    Configure BIRD kernel protocol:
       protocol kernel {
