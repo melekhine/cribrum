@@ -49,7 +49,6 @@ func (s *Sieve) injectRoute(ip net.IP, ttl uint32) {
 	log.Printf("[+] %s/%d -> %s (table %d, ttl %ds)", ipStr, ones, target, s.cfg.RouteTable, ttl)
 }
 
-
 // removeRoute deletes an expired host route from the kernel routing table.
 func (s *Sieve) removeRoute(ipStr string) {
 	ip := net.ParseIP(ipStr)
@@ -137,4 +136,3 @@ func (s *Sieve) Flush() {
 		s.removeRoute(ipStr)
 	}
 }
-

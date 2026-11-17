@@ -2,7 +2,6 @@ package cribrum
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"sync"
 	"time"
