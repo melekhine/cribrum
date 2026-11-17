@@ -29,17 +29,11 @@ type Sieve struct {
 
 // New initializes and returns a new Sieve instance.
 func New(cfg Config) (*Sieve, error) {
-	if cfg.ListenAddr == "" {
-		cfg.ListenAddr = "127.0.0.1:5353"
-	}
 	if cfg.UpstreamDNS == "" {
-		cfg.UpstreamDNS = "1.1.1.1:53"
+		cfg.UpstreamDNS = "127.0.1.1:53"
 	}
 	if cfg.RouteTable == 0 {
 		cfg.RouteTable = 100
-	}
-	if cfg.OutIface == "" {
-		return nil, fmt.Errorf("cribrum: egress interface must be specified")
 	}
 	if cfg.MinTTL == 0 {
 		cfg.MinTTL = 300
@@ -65,12 +59,16 @@ func (s *Sieve) Run(ctx context.Context) error {
 		Handler: mux,
 	}
 
-	go s.startCleaner(ctx)
+	target := s.cfg.OutIface
+	if target == "" {
+		target = "blackhole"
+	}
 
+	go s.startCleaner(ctx)
 	errCh := make(chan error, 1)
 	go func() {
 		log.Printf("cribrum %s active: %s -> %s (table %d, dev %s)",
-			BuildInfo(), s.cfg.ListenAddr, s.cfg.UpstreamDNS, s.cfg.RouteTable, s.cfg.OutIface)
+			BuildInfo(), s.cfg.ListenAddr, s.cfg.UpstreamDNS, s.cfg.RouteTable, target)
 		if err := server.ListenAndServe(); err != nil {
 			errCh <- err
 		}

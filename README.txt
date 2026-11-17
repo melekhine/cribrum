@@ -1,6 +1,5 @@
-Network Working Group                                  Igor A. Melekhine    
-SOZVEZDIE SSK OOO                                              Nov. 2026
-Category: Experimental
+SOZVEZDIE SSK OOO                                      Igor A. Melekhine
+                                                               Nov. 2026
 
 
          CRIBRUM: DYNAMIC DNS-TO-KERNEL ROUTE INJECTOR FOR BGP
@@ -32,12 +31,12 @@ Category: Experimental
 
    +------------+    DNS (53)     +-----------+   Forwarded   +---------+
    | LAN Client | --------------> |  dnsmasq  | ------------> | cribrum |
-   +------------+                 +-----------+   (127:5353)  +---------+
+   +------------+                 +-----------+   (127:5354)  +---------+
                                                                    |
                                                        Netlink     |
                                                        (Table 100) v
    +------------+   BGP / OSPFv2/v3   +-------+   Scan RIB    +---------+
-   |  Intranet  | <================== | BIRD2 | <------------ | Kernel  |
+   |  Neighbor  | <================== | BIRD  | <------------ | Kernel  |
    +------------+                     +-------+               +---------+
 
 3. Usage
@@ -46,10 +45,10 @@ Category: Experimental
              [-iface dev] [-ttl sec] [-completion shell] [-version]
 
    Flags:
-     -listen      Local UDP bind address (default "127.0.0.1:5353")
-     -upstream    Upstream DNS resolver (default "1.1.1.1:53")
+     -listen      Local UDP bind address (default "127.0.0.1:5354")
+     -upstream    Upstream local DNS resolver (e.g. stubby/unbound) (default "127.0.0.53:53")
      -table       Kernel routing table ID (default 100)
-     -iface       Egress tunnel interface (default "tailscale0")
+     -iface       Egress tunnel interface (default "dummy0")
      -ttl         Minimum route lifetime in seconds (default 300)
      -completion  Generate shell completion script (bash|zsh)
      -version     Print version information
@@ -61,10 +60,11 @@ Category: Experimental
       server=example.com
       server=*.example.net
 
-   Configure BIRD2 kernel protocol:
+   Configure BIRD kernel protocol:
       protocol kernel {
+          learn;
           kernel table 100;
-          scan time 2;
+          scan time 30;
           ipv4 { import all; export none; };
           ipv6 { import all; export none; };
       }

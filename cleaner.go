@@ -20,20 +20,22 @@ func (s *Sieve) startCleaner(ctx context.Context) {
 	}
 }
 
-func (s *Sieve) purgeExpired() {
-	now := time.Now()
-	var expired []string
-
+func (s *Sieve) drainExpired(now time.Time) []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	var expired []string
 	for ipStr, expireAt := range s.routeCache {
 		if now.After(expireAt) {
 			expired = append(expired, ipStr)
 			delete(s.routeCache, ipStr)
 		}
 	}
+	return expired
+}
 
-	for _, ipStr := range expired {
+func (s *Sieve) purgeExpired() {
+	for _, ipStr := range s.drainExpired(time.Now()) {
 		s.removeRoute(ipStr)
 	}
 }

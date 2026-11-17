@@ -3,6 +3,8 @@ package cribrum
 import (
 	"net"
 	"testing"
+
+	"golang.org/x/sys/unix"
 )
 
 func TestHostMask(t *testing.T) {
@@ -40,16 +42,37 @@ func TestHostMask(t *testing.T) {
 }
 
 func TestNewValidation(t *testing.T) {
-	_, err := New(Config{OutIface: ""})
+	_, err := New(Config{OutIface: "dummy0"})
 	if err == nil {
 		t.Fatal("expected error when OutIface is empty, got nil")
 	}
 
-	s, err := New(Config{OutIface: "tailscale0"})
+	s, err := New(Config{OutIface: "dummy0"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if s.cfg.RouteTable != 100 {
 		t.Errorf("default RouteTable = %d, want 100", s.cfg.RouteTable)
+	}
+}
+
+func TestBuildRouteBlackhole(t *testing.T) {
+	s, err := New(Config{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	route, target, err := s.buildRoute(net.ParseIP("104.18.12.34"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if target != "blackhole" {
+		t.Errorf("target = %q, want %q", target, "blackhole")
+	}
+	if route.Type != unix.RTN_BLACKHOLE {
+		t.Errorf("route.Type = %d, want %d (RTN_BLACKHOLE)", route.Type, unix.RTN_BLACKHOLE)
+	}
+	if route.LinkIndex != 0 {
+		t.Errorf("route.LinkIndex = %d, want 0 for blackhole", route.LinkIndex)
 	}
 }

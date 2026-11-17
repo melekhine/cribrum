@@ -21,9 +21,9 @@ func main() {
 	)
 
 	flag.StringVar(&cfg.ListenAddr, "listen", "127.0.0.1:5353", "Local UDP bind address")
-	flag.StringVar(&cfg.UpstreamDNS, "upstream", "1.1.1.1:53", "Upstream DNS resolver")
+	flag.StringVar(&cfg.UpstreamDNS, "upstream", "127.0.1.1:53", "Upstream DNS resolver")
 	flag.IntVar(&cfg.RouteTable, "table", 100, "Kernel routing table ID")
-	flag.StringVar(&cfg.OutIface, "iface", "tailscale0", "Egress tunnel interface")
+	flag.StringVar(&cfg.OutIface, "iface", "", "Egress tunnel interface (empty for blackhole)")
 	flag.UintVar(&minTTL, "ttl", 300, "Minimum route lifetime in seconds")
 	flag.StringVar(&compShell, "completion", "", "Generate shell completion script (bash|zsh)")
 	flag.BoolVar(&showVersion, "version", false, "Print version and build information")
