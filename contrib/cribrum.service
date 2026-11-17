@@ -1,0 +1,33 @@
+[Unit]
+Description=Cribrum DNS-to-kernel route injector
+Documentation=https://github.com/melekhine/cribrum
+After=network-online.target
+Wants=network-online.target
+Before=dnsmasq.service
+
+[Service]
+ExecStart=/usr/local/bin/cribrum -listen 127.0.0.1:5354 -table 100 -proto 201
+Restart=on-failure
+RestartSec=2s
+TimeoutStopSec=30s
+
+# Only CAP_NET_ADMIN is needed (routing table writes); no root required.
+DynamicUser=yes
+AmbientCapabilities=CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_ADMIN
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

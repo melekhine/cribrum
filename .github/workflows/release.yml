@@ -19,34 +19,36 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Validate tag
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "invalid tag: $TAG"; exit 1; }
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then echo "tag $TAG already exists"; exit 1; fi
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.27'
+          go-version-file: go.mod
 
       - name: Run tests
-        run: go test -v ./...
-
-      - name: Create and push Git tag
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@://github.com"
-          git tag -a "${{ inputs.tag }}" -m "Release ${{ inputs.tag }}"
-          git push origin "${{ inputs.tag }}"
+          go vet ./...
+          go test -race ./...
 
       - name: Build Linux binaries
         run: |
           mkdir -p dist
+          MODULE=github.com/melekhine/cribrum
           GIT_HASH=$(git rev-parse --short HEAD)
           GIT_TIME=$(date -u "+%FT%TZ")
-          GIT_TAG="${{ inputs.tag }}"
-          LDFLAGS="-s -w -X cribrum.GitHash=${GIT_HASH} -X cribrum.BuildTime=${GIT_TIME} -X cribrum.Version=${GIT_TAG}"
+          LDFLAGS="-s -w -X ${MODULE}.GitHash=${GIT_HASH} -X ${MODULE}.BuildTime=${GIT_TIME} -X ${MODULE}.Version=${TAG}"
 
           platforms=(
             "arm/7/cribrum-linux-armv7"
@@ -58,17 +60,20 @@ jobs:
             IFS="/" read -r goarch goarm outname <<< "$p"
             echo "Building $outname..."
             CGO_ENABLED=0 GOOS=linux GOARCH=$goarch GOARM=$goarm \
-              go build -ldflags="$LDFLAGS" -o "dist/cribrum" ./cmd/cribrum
-            tar -czf "dist/${outname}-${GIT_TAG}.tar.gz" -C dist cribrum -C .. README.txt LICENSE
+              go build -trimpath -ldflags="$LDFLAGS" -o "dist/cribrum" ./cmd/cribrum
+            tar -czf "dist/${outname}-${TAG}.tar.gz" -C dist cribrum -C .. README.txt LICENSE contrib/cribrum.service
             rm -f dist/cribrum
           done
 
           cd dist && sha256sum *.tar.gz > SHA256SUMS.txt
 
+      # The tag is created by the release itself, only after a successful build,
+      # so a failed run never leaves an orphan tag behind.
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: "Cribrum ${{ inputs.tag }}"
           prerelease: ${{ inputs.prerelease }}
           generate_release_notes: true
