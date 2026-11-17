@@ -25,13 +25,13 @@ func (s *Sieve) purgeExpired() {
 	var expired []string
 
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	for ipStr, expireAt := range s.routeCache {
 		if now.After(expireAt) {
 			expired = append(expired, ipStr)
 			delete(s.routeCache, ipStr)
 		}
 	}
-	s.mu.Unlock()
 
 	for _, ipStr := range expired {
 		s.removeRoute(ipStr)

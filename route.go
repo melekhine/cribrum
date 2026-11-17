@@ -27,13 +27,12 @@ func (s *Sieve) injectRoute(ip net.IP, ttl uint32) {
 	ipStr := ip.String()
 
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	existingExpire, exists := s.routeCache[ipStr]
 	if exists && existingExpire.After(expireAt) {
-		s.mu.Unlock()
 		return
 	}
 	s.routeCache[ipStr] = expireAt
-	s.mu.Unlock()
 
 	if exists {
 		return
@@ -86,12 +85,12 @@ func (s *Sieve) removeRoute(ipStr string) {
 // Flush removes all active routes tracked by this instance from the kernel table.
 func (s *Sieve) Flush() {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	active := make([]string, 0, len(s.routeCache))
 	for ipStr := range s.routeCache {
 		active = append(active, ipStr)
 		delete(s.routeCache, ipStr)
 	}
-	s.mu.Unlock()
 
 	if len(active) == 0 {
 		return
