@@ -1,0 +1,25 @@
+#!/bin/sh
+
+ENABLED=yes
+PROCS=cribrum
+ARGS="-listen 127.0.0.1:5354 -upstream 127.0.1.1:53 -table 100"
+PREARGS=""
+DESC="Cribrum DNS-to-Kernel Route Injector"
+PATH=/opt/sbin:/opt/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+flush_table() {
+    ip route flush table 100 2>/dev/null
+    ip -6 route flush table 100 2>/dev/null
+}
+
+pre_cmd() {
+    flush_table
+}
+
+post_cmd() {
+    if [ "$1" = "stop" ] || [ "$1" = "kill" ]; then
+        flush_table
+    fi
+}
+
+. /opt/etc/init.d/rc.func
